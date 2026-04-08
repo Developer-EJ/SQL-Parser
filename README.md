@@ -60,6 +60,13 @@ SQL 문자열을 앞에서부터 한 글자씩 읽으면서, 문자의 종류에
 ---
 
 ### 3. Parser
+```C
+switch (peek(tokens, 0)->type) {
+        case TOKEN_SELECT:
+            return parse_select(tokens);
+        case TOKEN_INSERT:
+            return parse_insert(tokens);
+```
 
 Parser는 Lexer가 만든 토큰 배열을 받아서, **토큰들이 올바른 SQL 문법인지 확인하고 의미 있는 정보를 뽑아내는** 역할을 합니다.
 

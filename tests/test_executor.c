@@ -28,7 +28,7 @@ static int test_insert_creates_file(void) {
     cleanup();
     TableSchema *s = make_test_schema();
 
-    InsertStmt stmt;
+    InsertStmt stmt = {0};
     strncpy(stmt.table, TEST_TABLE, sizeof(stmt.table));
     char *vals[] = {"1", "alice"};
     stmt.values = vals;
@@ -71,7 +71,7 @@ static int test_insert_then_select(void) {
     TableSchema *s = make_test_schema();
 
     /* INSERT (1, alice) */
-    InsertStmt ins;
+    InsertStmt ins = {0};
     strncpy(ins.table, TEST_TABLE, sizeof(ins.table));
     char *vals[] = {"1", "alice"};
     ins.values = vals;

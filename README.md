@@ -150,39 +150,7 @@ gcc -std=c99 -Wall -Wextra -Iinclude -o sqlp \
     src/executor/executor.c
 ```
 
-6개의 .c 파일을 한 번에 컴파일하고 하나의 실행 파일로 링크합니다.
+6개의 .c 파일을 한 번에 컴파일하고 하나의 실행 파일로 링크.
 
-| 옵션 | 설명 |
-|------|------|
-| `-std=c99` | C99 표준으로 컴파일 |
-| `-Wall -Wextra` | 경고 전체 출력 |
-| `-Iinclude` | `include/interface.h` 탐색 경로 지정 |
-| `-o sqlp` | 출력 파일명 지정 |
 
----
 
-## 파일 구조
-
-```
-include/interface.h      ← 모듈 간 인터페이스 계약
-src/main.c               ← 진입점
-src/input/               ← CLI Input + Lexer
-src/parser/              ← Parser
-src/schema/              ← Schema Load & Validate
-src/executor/            ← Executor
-schema/                  ← 테이블 스키마 정의 파일
-data/                    ← 테이블 데이터 파일 (자동 생성)
-samples/                 ← 테스트용 SQL 파일
-tests/                   ← 단위 테스트
-```
-
----
-
-## 팀 구성
-
-| 모듈 | 담당자 |
-|------|--------|
-| Input + Lexer | 박민석 |
-| Parser | 김주형 |
-| Schema + Validate | 김민철 |
-| Executor | 김은재 |

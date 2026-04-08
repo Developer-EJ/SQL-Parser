@@ -13,7 +13,7 @@ make clean                  # 빌드 산출물 삭제
 
 ---
 
-## 처리 흐름
+## 처리 흐름(목차)
 
 ```
 CLI Input → Lexer → Parser → Schema Load & Validate → Executor
@@ -49,7 +49,10 @@ SQL 문자열을 앞에서부터 한 글자씩 읽으면서, 문자의 종류에
 | `'` 작은따옴표로 감싼 값 | 닫는 `'` 까지 수집 | `TOKEN_STRING` |
 | `*` `,` `(` `)` `=` `;` | 문자 하나 그대로 처리 | `TOKEN_STAR`, `TOKEN_LPAREN` 등 고유 토큰 타입 |
 | 그 외 알 수 없는 문자 | 에러 출력 후 즉시 중단 | — |
-
+<br />
+<img width="2626" height="572" alt="image" src="https://github.com/user-attachments/assets/a91dde4f-2590-4bcf-84aa-771e10fcb25c" />
+<br />
+<br />
 매칭된 토큰들은 `TokenList` 구조체에 배열로 저장됩니다. 배열 크기는 입력 크기에 따라 `realloc` 으로 동적으로 늘어납니다.
 
 파일에 SQL 문장이 여러 개 있을 경우, `;` 기준으로 하나씩 잘라서 Parser에 순서대로 전달합니다.
@@ -66,31 +69,8 @@ Parser는 Lexer가 만든 토큰 배열을 받아서, **토큰들이 올바른 S
 
 파싱에 성공하면 **ASTNode** 구조체를 반환합니다. 실행에 필요한 정보만 구조화해서 담으며, 이후 Schema 검증과 Executor는 이 ASTNode만 보고 동작합니다.
 
-```
-┌─ ASTNode ───────────────────────────────────────────────────┐
-│  type  StmtType                                             │
-│                                                             │
-│  ┌─ SelectStmt (type == STMT_SELECT) ──────────────────┐   │
-│  │  table         char[64]      대상 테이블명           │   │
-│  │  select_all    int           SELECT * 여부           │   │
-│  │  columns       char**        컬럼 이름 목록          │   │
-│  │  column_count  int           컬럼 수                 │   │
-│  │  has_where     int           WHERE 절 유무           │   │
-│  │  where ──→ ┌─ WhereClause ──────────────────────┐   │   │
-│  │            │  col  char[64]   조건 컬럼명        │   │   │
-│  │            │  val  char[256]  비교 값            │   │   │
-│  │            └───────────────────────────────────┘   │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─ InsertStmt (type == STMT_INSERT) ──────────────────┐   │
-│  │  table         char[64]      대상 테이블명           │   │
-│  │  columns       char**        컬럼 이름 목록 (선택)   │   │
-│  │  column_count  int           컬럼 수                 │   │
-│  │  values        char**        삽입할 값 목록          │   │
-│  │  value_count   int           값 수                   │   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-```
+<img width="2312" height="1156" alt="image" src="https://github.com/user-attachments/assets/2b611385-45e7-4052-a6d8-8ba6eccfd62b" />
+
 
 ---
 

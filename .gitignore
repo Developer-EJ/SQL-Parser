@@ -63,3 +63,7 @@ test_executor
 
 # Data files (runtime generated)
 data/*.dat
+
+# Codex
+.codex
+AGENTS.md

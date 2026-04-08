@@ -20,6 +20,7 @@ static Token *peek(TokenList *tokens, int pos) {
 }
 
 /* 헬퍼: 기대 토큰 소비. 맞으면 pos 증가 후 SQL_OK, 틀리면 SQL_ERR */
+static int expect(TokenList *tokens, int *pos, TokenType type) __attribute__((unused));
 static int expect(TokenList *tokens, int *pos, TokenType type) {
     if (peek(tokens, *pos)->type != type) {
         fprintf(stderr, "parse error: unexpected token '%s' at line %d\n",
@@ -30,7 +31,6 @@ static int expect(TokenList *tokens, int *pos, TokenType type) {
     (*pos)++;
     return SQL_OK;
 }
-(void)expect; /* TODO 구현 전 경고 억제 */
 
 ASTNode *parser_parse(TokenList *tokens) {
     /* TODO: 김주형 — 실제 파서 구현 */

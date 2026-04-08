@@ -42,6 +42,7 @@ static TokenType keyword_lookup(const char *word) {
 
 TokenList *lexer_tokenize(const char *sql) {
     /* TODO: 박민석 — 실제 토크나이저 구현 */
+    (void)sql;
     (void)keyword_lookup;  /* 사용 전까지 경고 억제 */
 
     TokenList *list = calloc(1, sizeof(TokenList));

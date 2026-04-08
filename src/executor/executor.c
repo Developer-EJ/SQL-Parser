@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include "../../include/interface.h"
 
 /* ──────────────────────────────────────────────
@@ -37,9 +38,15 @@ static int line_matches_where(const char *line, const SelectStmt *stmt,
 
     char tmp[1024];
     strncpy(tmp, line, sizeof(tmp));
-    char *tok = strtok(tmp, ",");
+    char *tok = strtok(tmp, "|");
     for (int i = 0; i < col_idx && tok; i++)
-        tok = strtok(NULL, ",");
+        tok = strtok(NULL, "|");
+    /* 앞뒤 공백 제거 */
+    if (tok) {
+        while (*tok == ' ') tok++;
+        char *end = tok + strlen(tok) - 1;
+        while (end > tok && *end == ' ') *end-- = '\0';
+    }
     return (tok && strcmp(tok, stmt->where.val) == 0) ? 1 : 0;
 }
 
@@ -52,10 +59,16 @@ static Row parse_line_to_row(const char *line, const TableSchema *schema) {
 
     char buf[1024];
     strncpy(buf, line, sizeof(buf));
-    char *tok = strtok(buf, ",");
+    char *tok = strtok(buf, "|");
     for (int i = 0; i < row.count; i++) {
+        /* 앞뒤 공백 제거 */
+        if (tok) {
+            while (*tok == ' ') tok++;
+            char *end = tok + strlen(tok) - 1;
+            while (end > tok && *end == ' ') *end-- = '\0';
+        }
         row.values[i] = strdup(tok ? tok : "");
-        tok = strtok(NULL, ",");
+        tok = strtok(NULL, "|");
     }
     return row;
 }
@@ -203,6 +216,10 @@ int executor_run(const ASTNode *node, const TableSchema *schema) {
 }
 
 int db_insert(const InsertStmt *stmt, const TableSchema *schema) {
+    /* data/ 디렉토리가 없으면 자동으로 만든다.
+     * 이미 존재하면 mkdir이 실패하지만 무시해도 된다. */
+    mkdir("data", 0755);
+
     char path[256];
     snprintf(path, sizeof(path), "data/%s.dat", stmt->table);
 
@@ -216,7 +233,7 @@ int db_insert(const InsertStmt *stmt, const TableSchema *schema) {
         /* 컬럼 미지정: 기존 위치 기반 저장 */
         for (int i = 0; i < stmt->value_count; i++) {
             fprintf(fp, "%s", stmt->values[i]);
-            if (i < stmt->value_count - 1) fprintf(fp, ",");
+            if (i < stmt->value_count - 1) fprintf(fp, " | ");
         }
     } else {
         /* 컬럼 지정: 스키마 컬럼 순서 기준으로 값 재배열 후 저장
@@ -230,7 +247,7 @@ int db_insert(const InsertStmt *stmt, const TableSchema *schema) {
                 }
             }
             fprintf(fp, "%s", val_idx >= 0 ? stmt->values[val_idx] : "");
-            if (s < schema->column_count - 1) fprintf(fp, ",");
+            if (s < schema->column_count - 1) fprintf(fp, " | ");
         }
     }
     fprintf(fp, "\n");

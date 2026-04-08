@@ -264,34 +264,87 @@ int schema_validate(const ASTNode *node, const TableSchema *schema) {
     if (node->type == STMT_INSERT) {
         const InsertStmt *ins = &node->insert;
 
-        /* VALUES 개수와 컬럼 수가 다르면 에러다 */
-        if (ins->value_count != schema->column_count) {
-            fprintf(stderr, "schema: INSERT expects %d values, got %d\n",
-                    schema->column_count, ins->value_count);
-            return SQL_ERR;
-        }
+        if (ins->column_count > 0) {
+            /* ── 컬럼 지정 방식: INSERT INTO users (id, name) VALUES (1, 'alice') ── */
 
-        /* 각 값의 타입을 하나씩 검사한다 */
-        for (int i = 0; i < ins->value_count; i++) {
-            const char *val      = ins->values[i];       /* i번째로 넣은 값 */
-            ColType     expected = schema->columns[i].type; /* i번째 컬럼의 타입 */
-
-            /* INT 타입 컬럼에 숫자가 아닌 값이 들어오면 에러다 */
-            if (expected == COL_INT && !is_integer_string(val)) {
-                fprintf(stderr, "schema: column '%s' expects INT, got '%s'\n",
-                        schema->columns[i].name, val);
+            /* 지정한 컬럼 수와 값의 수가 다르면 에러다 */
+            if (ins->column_count != ins->value_count) {
+                fprintf(stderr, "schema: INSERT column count %d != value count %d\n",
+                        ins->column_count, ins->value_count);
                 return SQL_ERR;
             }
 
-            /* VARCHAR 타입 컬럼은 값의 길이가 max_len을 초과하면 에러다.
-             * max_len이 0이면 길이 제한이 없는 것으로 간주한다. */
-            if (expected == COL_VARCHAR) {
-                int max_len = schema->columns[i].max_len;
-                if (max_len > 0 && (int)strlen(val) > max_len) {
-                    fprintf(stderr,
-                            "schema: column '%s' max length is %d, got %d\n",
-                            schema->columns[i].name, max_len, (int)strlen(val));
+            /* 각 컬럼명이 스키마에 존재하는지, 타입이 맞는지 하나씩 확인한다 */
+            for (int i = 0; i < ins->column_count; i++) {
+                const char *col_name = ins->columns[i]; /* 지정한 컬럼명 */
+                const char *val      = ins->values[i];  /* 해당 컬럼에 넣을 값 */
+
+                /* 컬럼명이 스키마에 있는지 찾는다 */
+                int found = -1;
+                for (int j = 0; j < schema->column_count; j++) {
+                    if (strcmp(schema->columns[j].name, col_name) == 0) {
+                        found = j;
+                        break;
+                    }
+                }
+                if (found == -1) {
+                    /* 스키마에 없는 컬럼명이면 에러다 */
+                    fprintf(stderr, "schema: unknown column '%s' in INSERT\n", col_name);
                     return SQL_ERR;
+                }
+
+                /* 찾은 컬럼의 타입과 값이 맞는지 확인한다 */
+                ColType expected = schema->columns[found].type;
+
+                if (expected == COL_INT && !is_integer_string(val)) {
+                    fprintf(stderr, "schema: column '%s' expects INT, got '%s'\n",
+                            col_name, val);
+                    return SQL_ERR;
+                }
+
+                if (expected == COL_VARCHAR) {
+                    int max_len = schema->columns[found].max_len;
+                    if (max_len > 0 && (int)strlen(val) > max_len) {
+                        fprintf(stderr,
+                                "schema: column '%s' max length is %d, got %d\n",
+                                col_name, max_len, (int)strlen(val));
+                        return SQL_ERR;
+                    }
+                }
+            }
+
+        } else {
+            /* ── 컬럼 미지정 방식 (기존): INSERT INTO users VALUES (1, 'alice', 30) ── */
+
+            /* VALUES 개수와 컬럼 수가 다르면 에러다 */
+            if (ins->value_count != schema->column_count) {
+                fprintf(stderr, "schema: INSERT expects %d values, got %d\n",
+                        schema->column_count, ins->value_count);
+                return SQL_ERR;
+            }
+
+            /* 각 값의 타입을 하나씩 검사한다 */
+            for (int i = 0; i < ins->value_count; i++) {
+                const char *val      = ins->values[i];
+                ColType     expected = schema->columns[i].type;
+
+                /* INT 타입 컬럼에 숫자가 아닌 값이 들어오면 에러다 */
+                if (expected == COL_INT && !is_integer_string(val)) {
+                    fprintf(stderr, "schema: column '%s' expects INT, got '%s'\n",
+                            schema->columns[i].name, val);
+                    return SQL_ERR;
+                }
+
+                /* VARCHAR 타입 컬럼은 값의 길이가 max_len을 초과하면 에러다.
+                 * max_len이 0이면 길이 제한이 없는 것으로 간주한다. */
+                if (expected == COL_VARCHAR) {
+                    int max_len = schema->columns[i].max_len;
+                    if (max_len > 0 && (int)strlen(val) > max_len) {
+                        fprintf(stderr,
+                                "schema: column '%s' max length is %d, got %d\n",
+                                schema->columns[i].name, max_len, (int)strlen(val));
+                        return SQL_ERR;
+                    }
                 }
             }
         }

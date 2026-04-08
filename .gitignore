@@ -53,3 +53,13 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Build targets
+sqlp
+test_input
+test_parser
+test_schema
+test_executor
+
+# Data files (runtime generated)
+data/*.dat

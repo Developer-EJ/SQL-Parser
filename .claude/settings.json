@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"c:/Users/ejaj1/바탕 화면/SQL Parser\" && make test 2>&1 | tail -30"
+          }
+        ]
+      }
+    ]
+  }
+}

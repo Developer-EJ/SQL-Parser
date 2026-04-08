@@ -134,7 +134,8 @@ void     parser_free(ASTNode *node);
  * ========================================================= */
 typedef enum {
     COL_INT,
-    COL_VARCHAR
+    COL_VARCHAR,
+    COL_BOOLEAN  /* 허용값: "T" / "F" */
 } ColType;
 
 typedef struct {

@@ -43,6 +43,20 @@ static int is_integer_string(const char *s) {
 }
 
 /* ---------------------------------------------------------
+ * [내부 헬퍼] is_boolean_string
+ *
+ * 문자열이 BOOLEAN 값인지 판단한다.
+ * - "T" → 1 (참)
+ * - "F" → 1 (거짓)
+ * - 그 외 → 0
+ *
+ * INSERT 검증 시 BOOLEAN 컬럼에 들어오는 값을 체크할 때 사용.
+ * --------------------------------------------------------- */
+static int is_boolean_string(const char *s) {
+    return (s && (strcmp(s, "T") == 0 || strcmp(s, "F") == 0));
+}
+
+/* ---------------------------------------------------------
  * [내부 헬퍼] find_column
  *
  * 스키마에 해당 컬럼명이 있으면 1, 없으면 0 반환.
@@ -151,6 +165,8 @@ TableSchema *schema_load(const char *table_name) {
                 s->columns[idx].type = COL_INT;
             } else if (strcmp(type_str, "VARCHAR") == 0) {
                 s->columns[idx].type = COL_VARCHAR;
+            } else if (strcmp(type_str, "BOOLEAN") == 0) {
+                s->columns[idx].type = COL_BOOLEAN;
             } else {
                 fprintf(stderr, "schema: unknown type '%s' for column '%s'\n",
                         type_str, name);
@@ -214,6 +230,11 @@ int schema_validate(const ASTNode *node, const TableSchema *schema) {
 
             if (expected == COL_INT && !is_integer_string(val)) {
                 fprintf(stderr, "schema: column '%s' expects INT, got '%s'\n",
+                        schema->columns[i].name, val);
+                return SQL_ERR;
+            }
+            if (expected == COL_BOOLEAN && !is_boolean_string(val)) {
+                fprintf(stderr, "schema: column '%s' expects BOOLEAN (T/F), got '%s'\n",
                         schema->columns[i].name, val);
                 return SQL_ERR;
             }

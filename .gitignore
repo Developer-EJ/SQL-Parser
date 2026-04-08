@@ -67,3 +67,5 @@ data/*.dat
 # Codex
 .codex
 AGENTS.md
+agents.md
+.vscode/

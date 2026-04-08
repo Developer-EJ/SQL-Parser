@@ -125,6 +125,39 @@ static int test_insert(void) {
     return 0;
 }
 
+static int test_insert_with_columns(void) {
+    Token tokens[] = {
+        make_token(TOKEN_INSERT, "INSERT"),
+        make_token(TOKEN_INTO, "INTO"),
+        make_token(TOKEN_IDENT, "users"),
+        make_token(TOKEN_LPAREN, "("),
+        make_token(TOKEN_IDENT, "id"),
+        make_token(TOKEN_COMMA, ","),
+        make_token(TOKEN_IDENT, "name"),
+        make_token(TOKEN_RPAREN, ")"),
+        make_token(TOKEN_VALUES, "VALUES"),
+        make_token(TOKEN_LPAREN, "("),
+        make_token(TOKEN_INTEGER, "1"),
+        make_token(TOKEN_COMMA, ","),
+        make_token(TOKEN_STRING, "alice"),
+        make_token(TOKEN_RPAREN, ")"),
+        make_token(TOKEN_EOF, "")
+    };
+    ASTNode *ast = parse_tokens(tokens, (int)(sizeof(tokens) / sizeof(tokens[0])));
+    assert(ast != NULL);
+    assert(ast->type == STMT_INSERT);
+    assert(strcmp(ast->insert.table, "users") == 0);
+    assert(ast->insert.column_count == 2);
+    assert(strcmp(ast->insert.columns[0], "id") == 0);
+    assert(strcmp(ast->insert.columns[1], "name") == 0);
+    assert(ast->insert.value_count == 2);
+    assert(strcmp(ast->insert.values[0], "1") == 0);
+    assert(strcmp(ast->insert.values[1], "alice") == 0);
+    parser_free(ast);
+    PASS("parse: INSERT INTO users (id, name) VALUES (1, 'alice')");
+    return 0;
+}
+
 static int test_invalid_returns_null(void) {
     Token tokens[] = {
         make_token(TOKEN_IDENT, "GARBAGE"),
@@ -144,6 +177,7 @@ int main(void) {
     fail += test_select_columns();
     fail += test_select_where();
     fail += test_insert();
+    fail += test_insert_with_columns();
     fail += test_invalid_returns_null();
     printf("=== %s ===\n", fail == 0 ? "ALL PASS" : "FAILED");
     return fail;

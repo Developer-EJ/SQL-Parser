@@ -10,6 +10,7 @@
  *   SELECT <col1>, <col2>, ... FROM <table>
  *   SELECT * FROM <table> WHERE <col> = <val>
  *   INSERT INTO <table> VALUES (<val1>, <val2>, ...)
+ *   INSERT INTO <table> (<col1>, <col2>, ...) VALUES (<val1>, <val2>, ...)
  * ========================================================= */
 
 /* Return the token at the current position or EOF when out of range. */
@@ -34,7 +35,7 @@ static int expect(TokenList *tokens, int *pos, TokenType type) {
 
 static char *dup_value(const char *value) {
     size_t len = strlen(value) + 1;
-    char *copy = malloc(len);
+    char *copy = calloc(len, sizeof(char));
 
     if (!copy) {
         fprintf(stderr, "parser: out of memory\n");
@@ -114,6 +115,58 @@ static int expect_value(TokenList *tokens, int *pos, char *dst, size_t dst_size)
     return SQL_OK;
 }
 
+static int parse_ident_list(TokenList *tokens,
+                            int *pos,
+                            char ***items,
+                            int *count,
+                            int *capacity) {
+    if (expect(tokens, pos, TOKEN_LPAREN) != SQL_OK) return SQL_ERR;
+
+    while (1) {
+        Token *token = peek(tokens, *pos);
+
+        if (token->type != TOKEN_IDENT) {
+            fprintf(stderr, "parse error: unexpected token '%s' at line %d\n",
+                    token->value, token->line);
+            return SQL_ERR;
+        }
+
+        if (append_string(items, count, capacity, token->value) != SQL_OK) return SQL_ERR;
+
+        (*pos)++;
+        if (peek(tokens, *pos)->type != TOKEN_COMMA) break;
+        (*pos)++;
+    }
+
+    return expect(tokens, pos, TOKEN_RPAREN);
+}
+
+static int parse_value_list(TokenList *tokens,
+                            int *pos,
+                            char ***items,
+                            int *count,
+                            int *capacity) {
+    if (expect(tokens, pos, TOKEN_LPAREN) != SQL_OK) return SQL_ERR;
+
+    while (1) {
+        Token *token = peek(tokens, *pos);
+
+        if (!is_value_token(token->type)) {
+            fprintf(stderr, "parse error: unexpected token '%s' at line %d\n",
+                    token->value, token->line);
+            return SQL_ERR;
+        }
+
+        if (append_string(items, count, capacity, token->value) != SQL_OK) return SQL_ERR;
+
+        (*pos)++;
+        if (peek(tokens, *pos)->type != TOKEN_COMMA) break;
+        (*pos)++;
+    }
+
+    return expect(tokens, pos, TOKEN_RPAREN);
+}
+
 static ASTNode *parse_select(TokenList *tokens) {
     int pos = 0;
     int capacity = 0;
@@ -186,7 +239,8 @@ fail:
 
 static ASTNode *parse_insert(TokenList *tokens) {
     int pos = 0;
-    int capacity = 0;
+    int column_capacity = 0;
+    int value_capacity = 0;
     ASTNode *node = calloc(1, sizeof(ASTNode));
 
     if (!node) {
@@ -200,31 +254,25 @@ static ASTNode *parse_insert(TokenList *tokens) {
     if (expect(tokens, &pos, TOKEN_INTO) != SQL_OK) goto fail;
     if (expect_ident(tokens, &pos, node->insert.table, sizeof(node->insert.table)) != SQL_OK)
         goto fail;
-    if (expect(tokens, &pos, TOKEN_VALUES) != SQL_OK) goto fail;
-    if (expect(tokens, &pos, TOKEN_LPAREN) != SQL_OK) goto fail;
 
-    while (1) {
-        Token *value = peek(tokens, pos);
-
-        if (!is_value_token(value->type)) {
-            fprintf(stderr, "parse error: unexpected token '%s' at line %d\n",
-                    value->value, value->line);
+    if (peek(tokens, pos)->type == TOKEN_LPAREN) {
+        if (parse_ident_list(tokens,
+                             &pos,
+                             &node->insert.columns,
+                             &node->insert.column_count,
+                             &column_capacity) != SQL_OK) {
             goto fail;
         }
-
-        if (append_string(&node->insert.values,
-                          &node->insert.value_count,
-                          &capacity,
-                          value->value) != SQL_OK) {
-            goto fail;
-        }
-
-        pos++;
-        if (peek(tokens, pos)->type != TOKEN_COMMA) break;
-        pos++;
     }
 
-    if (expect(tokens, &pos, TOKEN_RPAREN) != SQL_OK) goto fail;
+    if (expect(tokens, &pos, TOKEN_VALUES) != SQL_OK) goto fail;
+    if (parse_value_list(tokens,
+                         &pos,
+                         &node->insert.values,
+                         &node->insert.value_count,
+                         &value_capacity) != SQL_OK) {
+        goto fail;
+    }
     if (expect(tokens, &pos, TOKEN_EOF) != SQL_OK) goto fail;
     return node;
 
@@ -260,6 +308,12 @@ void parser_free(ASTNode *node) {
             free(node->select.columns);
         }
     } else if (node->type == STMT_INSERT) {
+        if (node->insert.columns) {
+            for (int i = 0; i < node->insert.column_count; i++)
+                free(node->insert.columns[i]);
+            free(node->insert.columns);
+        }
+
         if (node->insert.values) {
             for (int i = 0; i < node->insert.value_count; i++)
                 free(node->insert.values[i]);

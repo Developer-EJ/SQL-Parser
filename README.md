@@ -1,6 +1,6 @@
 # 프로젝트 개요
 
-JUNGLE CAMPUS 구성원의 인적사항을 SQL 문을 통해 파일에 저장하고, 읽어오는 프로그램
+JUNGLE CAMPUS 구성원의 인적사항을 SQL 문으로 파일에 저장하고 조회하는 프로그램
 
 ## 빌드 및 실행
 
@@ -21,7 +21,7 @@ CLI Input → Lexer → Parser → Schema Load & Validate → Executor
 
 ---
 
-## 주요 기능 소개
+## 주요 로직 소개
 
 ### 1. CLI Input
 

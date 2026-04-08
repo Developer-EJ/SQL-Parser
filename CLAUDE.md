@@ -45,10 +45,16 @@ INSERT / SELECT 문을 파싱하고 파일에 데이터를 저장/조회한다.
 - 전역 변수 사용 금지
 - 컴파일 경고 무시 금지 (`-Wall -Wextra` 클린 빌드 유지)
 
+## 최초 세팅 (clone 후 1회 실행)
+```bash
+git config core.hooksPath .githooks   # pre-commit 훅 활성화
+```
+
 ## 빌드 / 테스트
 ```bash
-make          # 전체 빌드 → ./sqlp 생성
-make test     # 전체 단위 테스트 실행
+make               # 전체 빌드 → ./sqlp 생성
+make test          # 전체 단위 테스트 실행
+bash scripts/lint.sh  # 린트 단독 실행
 ./sqlp samples/insert.sql
 ./sqlp samples/select.sql
 ```

@@ -282,7 +282,18 @@ int schema_validate(const ASTNode *node, const TableSchema *schema) {
                         schema->columns[i].name, val);
                 return SQL_ERR;
             }
-            /* VARCHAR 타입은 어떤 값이든 허용하므로 따로 검사하지 않는다 */
+
+            /* VARCHAR 타입 컬럼은 값의 길이가 max_len을 초과하면 에러다.
+             * max_len이 0이면 길이 제한이 없는 것으로 간주한다. */
+            if (expected == COL_VARCHAR) {
+                int max_len = schema->columns[i].max_len;
+                if (max_len > 0 && (int)strlen(val) > max_len) {
+                    fprintf(stderr,
+                            "schema: column '%s' max length is %d, got %d\n",
+                            schema->columns[i].name, max_len, (int)strlen(val));
+                    return SQL_ERR;
+                }
+            }
         }
 
         return SQL_OK; /* 모든 검사를 통과하면 성공 */

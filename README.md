@@ -32,6 +32,8 @@ CLI Input → Lexer → Parser → Schema Load & Validate → Executor
 사용자는 터미널에서 실행 파일을 실행하고 인자로 SQL 파일 경로를 전달합니다.
 
 `main` 함수에서 인자로 받은 경로를 `input_read_file` 함수에 넘기면, 파일을 열어 내용 전체를 하나의 문자열로 읽어옵니다. 이 문자열이 이후 Lexer로 전달됩니다.
+<br />
+<br />
 
 ---
 
@@ -49,6 +51,8 @@ SQL 문자열을 앞에서부터 한 글자씩 읽으면서, 문자의 종류에
 | `'` 작은따옴표로 감싼 값 | 닫는 `'` 까지 수집 | `TOKEN_STRING` |
 | `*` `,` `(` `)` `=` `;` | 문자 하나 그대로 처리 | `TOKEN_STAR`, `TOKEN_LPAREN` 등 고유 토큰 타입 |
 | 그 외 알 수 없는 문자 | 에러 출력 후 즉시 중단 | — |
+<br />
+<br />
 <br />
 <img width="2626" height="572" alt="image" src="https://github.com/user-attachments/assets/a91dde4f-2590-4bcf-84aa-771e10fcb25c" />
 <br />
@@ -73,6 +77,9 @@ Parser는 Lexer가 만든 토큰 배열을 받아서, **토큰들이 올바른 S
 가장 먼저 첫 번째 토큰을 확인합니다. `SELECT` 이면 SELECT 파싱 로직으로, `INSERT` 이면 INSERT 파싱 로직으로 분기합니다.
 
 분기 이후에는 토큰을 앞에서부터 순서대로 하나씩 소비하면서, 해당 자리에 와야 할 토큰이 맞는지 확인합니다. 순서가 어긋나는 순간 에러를 출력하고 중단합니다.
+<br />
+<br />
+
 
 파싱에 성공하면 **ASTNode** 구조체를 반환합니다. 실행에 필요한 정보만 구조화해서 담으며, 이후 Schema 검증과 Executor는 이 ASTNode만 보고 동작합니다.
 
@@ -102,6 +109,8 @@ col1=name,VARCHAR,64
 col2=gender,VARCHAR,10
 col3=is_cs_major,BOOLEAN,0
 ```
+<br />
+<br />
 
 #### Validate
 
@@ -159,5 +168,35 @@ gcc -std=c99 -Wall -Wextra -Iinclude -o sqlp \
 
 6개의 .c 파일을 한 번에 컴파일하고 하나의 실행 파일로 링크.
 
+---
 
+## 테스트 케이스
+### :white_check_mark: Success Cases
+
+| 구분 | 내용 |
+|------|------|
+| INSERT | 기본 INSERT 정상 동작 |
+| INSERT | 일부 컬럼만 지정 |
+| INSERT | 컬럼 순서 변경 |
+| SELECT | 전체 조회 (`SELECT *`) |
+| SELECT | 문자열 WHERE 조건 |
+
+:point_right: 특징:
+- Parser → Validation → Execution 전 단계 통과
+
+---
+
+### :x: Fail Cases
+
+| 구분 | 내용 | 단계 |
+|------|------|------|
+| INSERT | 컬럼 수 부족 | Validation |
+| INSERT | VARCHAR 길이 초과 | Validation |
+| INSERT | 타입 불일치 | Validation |
+| INSERT | 존재하지 않는 컬럼 | Validation |
+| PARSE | 음수 리터럴 미지원 | Parser |
+| PARSE | 세미콜론 미지원 | Parser |
+| SELECT | 존재하지 않는 컬럼 조회 | Validation |
+| SELECT | WHERE 컬럼 오류 | Validation |
+| COMMON | 존재하지 않는 테이블 | Validation |
 

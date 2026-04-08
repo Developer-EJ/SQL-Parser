@@ -10,9 +10,10 @@ static int test_load_users(void) {
     TableSchema *s = schema_load("users");
     assert(s != NULL);
     assert(strcmp(s->table_name, "users") == 0);
-    assert(s->column_count == 3);
+    assert(s->column_count == 4);
+    assert(s->columns[3].type == COL_BOOLEAN);
     schema_free(s);
-    PASS("schema_load: users -> 3 columns");
+    PASS("schema_load: users -> 4 columns (incl. BOOLEAN)");
     return 0;
 }
 
@@ -24,29 +25,29 @@ static int test_load_missing(void) {
 }
 
 static int test_validate_insert_ok(void) {
-    /* INSERT INTO users VALUES (1, 'alice', 30) */
-    ASTNode node;
+    /* INSERT INTO users VALUES (1, 'alice', 'male', 'T') */
+    ASTNode node = {0};
     node.type = STMT_INSERT;
     strncpy(node.insert.table, "users", sizeof(node.insert.table));
-    char *vals[] = {"1", "alice", "30"};
+    char *vals[] = {"1", "alice", "male", "T"};
     node.insert.values = vals;
-    node.insert.value_count = 3;
+    node.insert.value_count = 4;
 
     TableSchema *s = schema_load("users");
     assert(s != NULL);
     assert(schema_validate(&node, s) == SQL_OK);
     schema_free(s);
-    PASS("schema_validate: INSERT with 3 values -> SQL_OK");
+    PASS("schema_validate: INSERT with 4 values -> SQL_OK");
     return 0;
 }
 
 static int test_validate_insert_wrong_count(void) {
-    ASTNode node;
+    ASTNode node = {0};
     node.type = STMT_INSERT;
     strncpy(node.insert.table, "users", sizeof(node.insert.table));
     char *vals[] = {"1"};
     node.insert.values = vals;
-    node.insert.value_count = 1;  /* 3개 필요한데 1개 */
+    node.insert.value_count = 1;  /* 4개 필요한데 1개 */
 
     TableSchema *s = schema_load("users");
     assert(s != NULL);

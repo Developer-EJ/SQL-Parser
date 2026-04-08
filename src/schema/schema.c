@@ -61,6 +61,21 @@ static int is_integer_string(const char *s) {
     return 1;
 }
 
+/* =========================================================
+ * 함수 이름: is_boolean_string
+ * 이 함수는 이 파일 안에서만 쓰인다. (static)
+ *
+ * 하는 일:
+ *   문자열이 BOOLEAN 값인지 아닌지 확인한다.
+ *   "T" 또는 "F" 이면 1, 그 외에는 0을 반환한다.
+ *
+ * 언제 쓰이나:
+ *   INSERT 검증할 때, BOOLEAN 타입 컬럼에 들어온 값이
+ *   "T" 또는 "F" 인지 확인할 때 사용한다.
+ * ========================================================= */
+static int is_boolean_string(const char *s) {
+    return (s && (strcmp(s, "T") == 0 || strcmp(s, "F") == 0));
+}
 
 /* =========================================================
  * 함수 이름: find_column
@@ -212,6 +227,8 @@ TableSchema *schema_load(const char *table_name) {
                 s->columns[idx].type = COL_INT;       /* "INT" -> COL_INT */
             } else if (strcmp(type_str, "VARCHAR") == 0) {
                 s->columns[idx].type = COL_VARCHAR;   /* "VARCHAR" -> COL_VARCHAR */
+            } else if (strcmp(type_str, "BOOLEAN") == 0) {
+                s->columns[idx].type = COL_BOOLEAN;   /* "BOOLEAN" -> COL_BOOLEAN */
             } else {
                 /* INT도 VARCHAR도 아닌 알 수 없는 타입이면 에러 처리한다 */
                 fprintf(stderr, "schema: unknown type '%s' for column '%s'\n",
@@ -311,6 +328,12 @@ int schema_validate(const ASTNode *node, const TableSchema *schema) {
                         return SQL_ERR;
                     }
                 }
+
+                if (expected == COL_BOOLEAN && !is_boolean_string(val)) {
+                    fprintf(stderr, "schema: column '%s' expects BOOLEAN (T/F), got '%s'\n",
+                            col_name, val);
+                    return SQL_ERR;
+                }
             }
 
         } else {
@@ -345,6 +368,12 @@ int schema_validate(const ASTNode *node, const TableSchema *schema) {
                                 schema->columns[i].name, max_len, (int)strlen(val));
                         return SQL_ERR;
                     }
+                }
+
+                if (expected == COL_BOOLEAN && !is_boolean_string(val)) {
+                    fprintf(stderr, "schema: column '%s' expects BOOLEAN (T/F), got '%s'\n",
+                            schema->columns[i].name, val);
+                    return SQL_ERR;
                 }
             }
         }

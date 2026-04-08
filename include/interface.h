@@ -31,6 +31,7 @@ typedef enum {
     TOKEN_LPAREN,      /* ( */
     TOKEN_RPAREN,      /* ) */
     TOKEN_EQ,          /* = */
+    TOKEN_SEMICOLON,   /* ; */
     TOKEN_IDENT,       /* 테이블명, 컬럼명 */
     TOKEN_STRING,      /* 'alice' */
     TOKEN_INTEGER,     /* 42 */

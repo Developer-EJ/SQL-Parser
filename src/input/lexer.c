@@ -162,6 +162,11 @@ TokenList *lexer_tokenize(const char *sql) {
             p++;
             continue;
         }
+        if (*p == ';') {
+            if (append_token(list, TOKEN_SEMICOLON, ";", line) == SQL_ERR) goto fail;
+            p++;
+            continue;
+        }
 
         fprintf(stderr, "lexer: unknown character '%c' at line %d\n", *p, line);
         goto fail;

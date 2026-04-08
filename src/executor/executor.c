@@ -46,8 +46,6 @@ int executor_run(const ASTNode *node, const TableSchema *schema) {
 }
 
 int db_insert(const InsertStmt *stmt, const TableSchema *schema) {
-    (void)schema;
-
     char path[256];
     snprintf(path, sizeof(path), "data/%s.dat", stmt->table);
 
@@ -57,9 +55,26 @@ int db_insert(const InsertStmt *stmt, const TableSchema *schema) {
         return SQL_ERR;
     }
 
-    for (int i = 0; i < stmt->value_count; i++) {
-        fprintf(fp, "%s", stmt->values[i]);
-        if (i < stmt->value_count - 1) fprintf(fp, ",");
+    if (stmt->column_count == 0) {
+        /* 컬럼 미지정: 기존 위치 기반 저장 */
+        for (int i = 0; i < stmt->value_count; i++) {
+            fprintf(fp, "%s", stmt->values[i]);
+            if (i < stmt->value_count - 1) fprintf(fp, ",");
+        }
+    } else {
+        /* 컬럼 지정: 스키마 컬럼 순서 기준으로 값 재배열 후 저장
+         * 지정되지 않은 컬럼은 빈 문자열로 채운다 */
+        for (int s = 0; s < schema->column_count; s++) {
+            int val_idx = -1;
+            for (int c = 0; c < stmt->column_count; c++) {
+                if (strcmp(stmt->columns[c], schema->columns[s].name) == 0) {
+                    val_idx = c;
+                    break;
+                }
+            }
+            fprintf(fp, "%s", val_idx >= 0 ? stmt->values[val_idx] : "");
+            if (s < schema->column_count - 1) fprintf(fp, ",");
+        }
     }
     fprintf(fp, "\n");
     fclose(fp);

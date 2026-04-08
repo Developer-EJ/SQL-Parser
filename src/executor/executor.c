@@ -4,6 +4,26 @@
 #include "../../include/interface.h"
 
 
+static void print_result(const ResultSet *rs) {
+    if (!rs || rs->row_count == 0) {
+        printf("(0 rows)\n");
+        return;
+    }
+    for (int c = 0; c < rs->col_count; c++) {
+        printf("%s", rs->col_names[c]);
+        if (c < rs->col_count - 1) printf(" | ");
+    }
+    printf("\n");
+    for (int r = 0; r < rs->row_count; r++) {
+        for (int c = 0; c < rs->rows[r].count; c++) {
+            printf("%s", rs->rows[r].values[c]);
+            if (c < rs->rows[r].count - 1) printf(" | ");
+        }
+        printf("\n");
+    }
+    printf("(%d row%s)\n", rs->row_count, rs->row_count == 1 ? "" : "s");
+}
+
 int executor_run(const ASTNode *node, const TableSchema *schema) {
     if (!node || !schema) return SQL_ERR;
 
@@ -12,7 +32,8 @@ int executor_run(const ASTNode *node, const TableSchema *schema) {
             return db_insert(&node->insert, schema);
         case STMT_SELECT: {
             ResultSet *rs = db_select(&node->select, schema);
-            /* 출력은 main.c 에서 처리하므로 여기서는 실행만 */
+            if (!rs) return SQL_ERR;
+            print_result(rs);
             result_free(rs);
             return SQL_OK;
         }

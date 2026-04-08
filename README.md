@@ -72,7 +72,7 @@ switch (peek(tokens, 0)->type) {
             return parse_insert(tokens);
 ```
 
-Parser는 Lexer가 만든 토큰 배열을 받아 **문법을 검사하고 실행에 필요한 정보를 추출**하는 역할.
+Lexer가 만든 토큰 배열을 받아 **문법을 검사하고 실행에 필요한 정보를 추출**하는 역할.
 
 `peek` 함수로 0번째 토큰을 확인. SELECT이면 SELECT 파싱 로직으로, INSERT이면 INSERT 파싱 로직으로 분기.
 
@@ -114,7 +114,9 @@ col3=is_cs_major,BOOLEAN,0
 
 #### Validate
 
-Parser가 해석한 SQL 내용이 실제 테이블 구조와 맞는지 확인. 존재하지 않는 컬럼 조회, INT 컬럼에 문자열 삽입 등은 이 단계에서 차단.
+Parser가 해석한 SQL 내용이 실제 테이블 구조와 맞는지 확인. 
+- 존재하지 않는 컬럼 조회
+- INT 컬럼에 문자열 삽입 등은 이 단계에서 차단.
 
 **INSERT 검증**
 - 값의 개수가 컬럼 수와 일치하는지 확인

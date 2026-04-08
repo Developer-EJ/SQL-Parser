@@ -2,26 +2,6 @@
 #include <stdlib.h>
 #include "../include/interface.h"
 
-static void print_result(ResultSet *rs) {
-    if (!rs || rs->row_count == 0) {
-        printf("(0 rows)\n");
-        return;
-    }
-    for (int c = 0; c < rs->col_count; c++) {
-        printf("%s", rs->col_names[c]);
-        if (c < rs->col_count - 1) printf(" | ");
-    }
-    printf("\n");
-    for (int r = 0; r < rs->row_count; r++) {
-        for (int c = 0; c < rs->rows[r].count; c++) {
-            printf("%s", rs->rows[r].values[c]);
-            if (c < rs->rows[r].count - 1) printf(" | ");
-        }
-        printf("\n");
-    }
-    printf("(%d row%s)\n", rs->row_count, rs->row_count == 1 ? "" : "s");
-}
-
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <sql_file>\n", argv[0]);
@@ -72,18 +52,11 @@ int main(int argc, char *argv[]) {
     }
 
     /* 6. 실행 (모듈4) */
-    if (ast->type == STMT_SELECT) {
-        ResultSet *rs = db_select(&ast->select, schema);
-        print_result(rs);
-        result_free(rs);
-    } else {
-        if (db_insert(&ast->insert, schema) != SQL_OK) {
-            fprintf(stderr, "Error: insert failed\n");
-            schema_free(schema);
-            parser_free(ast);
-            return 1;
-        }
-        printf("1 row inserted.\n");
+    if (executor_run(ast, schema) != SQL_OK) {
+        fprintf(stderr, "Error: execution failed\n");
+        schema_free(schema);
+        parser_free(ast);
+        return 1;
     }
 
     schema_free(schema);

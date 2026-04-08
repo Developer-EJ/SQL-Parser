@@ -29,7 +29,9 @@ int executor_run(const ASTNode *node, const TableSchema *schema) {
 
     switch (node->type) {
         case STMT_INSERT:
-            return db_insert(&node->insert, schema);
+            if (db_insert(&node->insert, schema) != SQL_OK) return SQL_ERR;
+            printf("1 row inserted.\n");
+            return SQL_OK;
         case STMT_SELECT: {
             ResultSet *rs = db_select(&node->select, schema);
             if (!rs) return SQL_ERR;

@@ -2,6 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#ifdef _WIN32
+#include <direct.h>
+#define MKDIR(p) mkdir(p)
+#else
+#define MKDIR(p) mkdir(p, 0755)
+#endif
 #include "../../include/interface.h"
 
 /* ──────────────────────────────────────────────
@@ -218,7 +224,7 @@ int executor_run(const ASTNode *node, const TableSchema *schema) {
 int db_insert(const InsertStmt *stmt, const TableSchema *schema) {
     /* data/ 디렉토리가 없으면 자동으로 만든다.
      * 이미 존재하면 mkdir이 실패하지만 무시해도 된다. */
-    mkdir("data", 0755);
+    MKDIR("data");
 
     char path[256];
     snprintf(path, sizeof(path), "data/%s.dat", stmt->table);

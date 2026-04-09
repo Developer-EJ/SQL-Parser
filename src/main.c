@@ -4,18 +4,52 @@
 #include "../include/interface.h"
 
 /* =========================================================
+ * display_width
+ *
+ * UTF-8 문자열의 화면 표시 너비를 반환한다.
+ * 한글 등 2바이트 폭 문자(CJK)는 2칸, ASCII는 1칸으로 계산한다.
+ * strlen은 바이트 수를 반환하므로 한글이 포함되면 줄이 맞지 않는다.
+ * ========================================================= */
+static int display_width(const char *s) {
+    int width = 0;
+    const unsigned char *p = (const unsigned char *)s;
+    while (*p) {
+        if (*p < 0x80) {
+            /* ASCII: 1바이트, 1칸 */
+            width += 1;
+            p += 1;
+        } else if ((*p & 0xE0) == 0xC0) {
+            /* 2바이트 UTF-8 */
+            width += 1;
+            p += 2;
+        } else if ((*p & 0xF0) == 0xE0) {
+            /* 3바이트 UTF-8 (한글, CJK 등) — 화면에서 2칸 차지 */
+            width += 2;
+            p += 3;
+        } else if ((*p & 0xF8) == 0xF0) {
+            /* 4바이트 UTF-8 (이모지 등) — 화면에서 2칸 차지 */
+            width += 2;
+            p += 4;
+        } else {
+            p += 1;
+        }
+    }
+    return width;
+}
+
+/* =========================================================
  * print_pretty_table
  *
  * ResultSet을 보기 좋은 표 형태로 출력한다.
+ * 한글 등 멀티바이트 문자도 올바르게 정렬된다.
  *
  * 출력 예시:
  *   +----+-------+-----+
  *   | id | name  | age |
  *   +----+-------+-----+
  *   | 1  | alice | 30  |
- *   | 2  | bob   | 25  |
  *   +----+-------+-----+
- *   (2 rows)
+ *   (1 row)
  * ========================================================= */
 static void print_pretty_table(ResultSet *rs) {
     if (!rs || rs->row_count == 0) {
@@ -23,19 +57,19 @@ static void print_pretty_table(ResultSet *rs) {
         return;
     }
 
-    /* 각 컬럼의 최대 너비를 계산한다 (컬럼명과 값 중 더 긴 것) */
+    /* 각 컬럼의 최대 표시 너비를 계산한다 */
     int *widths = calloc((size_t)rs->col_count, sizeof(int));
     if (!widths) return;
 
     for (int c = 0; c < rs->col_count; c++) {
-        widths[c] = (int)strlen(rs->col_names[c]);
+        widths[c] = display_width(rs->col_names[c]);
         for (int r = 0; r < rs->row_count; r++) {
-            int len = (int)strlen(rs->rows[r].values[c]);
-            if (len > widths[c]) widths[c] = len;
+            int w = display_width(rs->rows[r].values[c]);
+            if (w > widths[c]) widths[c] = w;
         }
     }
 
-    /* 구분선 출력 함수 (+----+-------+-----+) */
+    /* 구분선 출력 (+----+-------+-----+) */
     #define PRINT_SEP() do { \
         for (int c = 0; c < rs->col_count; c++) { \
             printf("+"); \
@@ -44,33 +78,44 @@ static void print_pretty_table(ResultSet *rs) {
         printf("+\n"); \
     } while(0)
 
-    /* 위쪽 구분선 */
+    /* 문자열을 표시 너비에 맞춰 패딩해서 출력한다.
+     * %-*s 는 바이트 수 기준이라 한글이 있으면 줄이 맞지 않으므로
+     * 표시 너비 차이만큼 공백을 직접 추가한다. */
+    #define PRINT_CELL(str, col_width) do { \
+        int dw = display_width(str); \
+        printf("%s", str); \
+        for (int _p = dw; _p < (col_width); _p++) printf(" "); \
+    } while(0)
+
     PRINT_SEP();
 
-    /* 컬럼 헤더 출력 */
+    /* 헤더 출력 */
     for (int c = 0; c < rs->col_count; c++) {
-        printf("| %-*s ", widths[c], rs->col_names[c]);
+        printf("| ");
+        PRINT_CELL(rs->col_names[c], widths[c]);
+        printf(" ");
     }
     printf("|\n");
 
-    /* 헤더 아래 구분선 */
     PRINT_SEP();
 
-    /* 각 행 출력 */
+    /* 데이터 행 출력 */
     for (int r = 0; r < rs->row_count; r++) {
         for (int c = 0; c < rs->rows[r].count; c++) {
-            printf("| %-*s ", widths[c], rs->rows[r].values[c]);
+            printf("| ");
+            PRINT_CELL(rs->rows[r].values[c], widths[c]);
+            printf(" ");
         }
         printf("|\n");
     }
 
-    /* 아래쪽 구분선 */
     PRINT_SEP();
 
     printf("(%d row%s)\n", rs->row_count, rs->row_count == 1 ? "" : "s");
 
     free(widths);
     #undef PRINT_SEP
+    #undef PRINT_CELL
 }
 
 /* =========================================================
